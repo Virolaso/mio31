@@ -1,0 +1,145 @@
+/* LGMDM V4 — main general grid ONLY
+   Única fuente de verdad para el layout de .lg-app / .lg-app-body.
+   NO duplicar estas reglas (ni display:grid ni grid-template-*) en otro
+   CSS sin @layer: una regla sin @layer le gana siempre a una con @layer,
+   sin importar el orden de <link>, y eso fue justamente lo que rompió
+   el layout antes (01-reset-base.css pisaba esto con var(--sidebar),
+   que no existe fuera de los media queries). */
+@layer main-grid {
+  .lg-app {
+    display: grid;
+    grid-template-rows: var(--lg-shell-header-h) minmax(0, 1fr) auto;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .lg-header {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+    align-items: center;
+    gap: 20px;
+    padding: 6px var(--gutter);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(6px);
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg) 96%, transparent));
+    overflow: hidden;
+    min-height: var(--lg-shell-header-h);
+    max-height: var(--lg-shell-header-h);
+    position: sticky;
+    top: 0;
+    z-index: 80;
+  }
+
+  .lg-app-body {
+    display: grid;
+    grid-template-columns: minmax(0, var(--lg-sidebar-w)) minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Estado colapsado del sidebar (toggleado por js/32-flex-layout.js) */
+  .lg-app-body.sidebar-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  .lg-app-body.sidebar-collapsed .lg-sidebar {
+    overflow: hidden;
+    padding: 0;
+    border-right: 0;
+    width: 0;
+    min-width: 0;
+  }
+
+  .lg-main-stack {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--gutter);
+    background: radial-gradient(circle at 72% -10%, color-mix(in srgb, var(--p2) 12%, transparent), transparent 34%),
+                radial-gradient(circle at 12% 120%, color-mix(in srgb, var(--p) 8%, transparent), transparent 26%);
+  }
+
+  .lg-footer {
+    min-height: 34px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 0 var(--gutter);
+    border-top: 1px solid var(--line);
+    color: var(--dim);
+    background: var(--s);
+    font-size: 12px;
+  }
+
+  /* Handle de redimensionamiento del sidebar */
+  .sidebarResizeHandle {
+    width: 10px;
+    flex: 0 0 10px;
+    cursor: col-resize;
+    background: linear-gradient(90deg, transparent, var(--line), transparent);
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+
+  .sidebarResizeHandle:hover {
+    opacity: 1;
+  }
+
+  /* Handle de redimensionamiento del header */
+    /* → 02-header.css */
+
+
+    /* → 02-header.css */
+
+
+    /* → 02-header.css */
+
+
+  /* Responsive: apilado en móviles */
+  @media (max-width: 900px) {
+    .lg-app {
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
+    }
+
+    .lg-header {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 0 7px;
+    }
+
+    .lg-header-center {
+      display: none;
+    }
+
+    .lg-app-body {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: calc(100dvh - var(--lg-shell-header-h));
+      overflow: visible;
+    }
+
+    .lg-sidebar {
+      max-height: none;
+      border-right: 0;
+      border-bottom: 1px solid var(--v4-accent);
+      width: 100% !important;
+      padding: 8px !important;
+    }
+
+    .lg-app-body.sidebar-collapsed .lg-sidebar {
+      width: 100% !important;
+      padding: 8px !important;
+      border-bottom: 1px solid var(--v4-accent);
+      overflow: auto;
+    }
+
+    .lg-main-stack {
+      padding: 8px;
+    }
+
+    .sidebarResizeHandle {
+      display: none;
+    }
+  }
+}

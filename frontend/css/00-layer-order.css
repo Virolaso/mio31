@@ -1,0 +1,37 @@
+/* ============================================================
+   00-layer-order.css — ORDEN GLOBAL DE CASCADE LAYERS
+   ------------------------------------------------------------
+   Este archivo tiene que ser el PRIMER <link> del <head>, antes
+   que cualquier otro CSS. Es la única línea que le importa a esta
+   hoja de estilos — no tiene ninguna regla, solo fija el orden.
+
+   Por qué existe: había nombres de @layer repartidos en el proyecto
+   y CERO declaraciones de orden. Sin esto, CSS decide la prioridad
+   de las capas por la primera vez que aparece cada nombre en la
+   cascada — es decir, por el orden accidental de los <link> en el
+   HTML. Reordenar un link o agregar un archivo nuevo más arriba
+   cambiaba silenciosamente qué capa le gana a cuál.
+
+   Regla de lectura: las capas listadas MÁS A LA DERECHA ganan por
+   sobre las de la izquierda. Por eso 'responsive' y 'accessibility'
+   van casi al final — así los media queries y los estilos de
+   accesibilidad siempre pueden pisar cualquier regla de layout o de
+   componente, sin importar en qué archivo estén. 'utilities' y
+   'boceto' van después de todo a propósito: son clases utilitarias
+   y de prueba pensadas para ganarle a cualquier otra cosa.
+
+   ACTUALIZACIÓN: ya no queda ningún archivo de css/ sin @layer.
+   Los 8 que faltaban (00-variables-theme, 02-header, 05-components,
+   08-auth-ai-ui, studio-theme, 99-utilities y
+   console-shell) se envolvieron cada uno en su propia capa nombrada
+   y se agregaron acá. En particular, 00-variables-theme.css estaba
+   sin @layer a propósito para que sus variables --v4-*/--lg-*
+   ganaran siempre — pero eso hacía que los @media de responsive.css
+   que pisan --v4-gap/--lg-sidebar-w/--lg-shell-header-h en pantallas
+   chicas NUNCA se aplicaran. Ahora 'variables' vive bien abajo en
+   este orden (antes que 'responsive'), así el breakpoint gana cuando
+   corresponde. 'header' y 'console-shell' también se ubicaron antes
+   de 'responsive' por el mismo motivo (headers y paneles con reglas
+   propias que los @media necesitan poder pisar).
+   ============================================================ */
+@layer variables, reset, tokens, main-grid, header, components, panel-left-shell, sidebar, studio-left, workspace-shell, workspace, console, console-master, studio-center, console-center-group-b, console-shell, pro-console, studio-right, studio-theme, auth-ai, stage-visibility, responsive, accessibility, utilities;

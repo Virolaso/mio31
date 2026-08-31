@@ -1,0 +1,40 @@
+/* LGMDM V4 — theme/reset/tokens */
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { margin: 0; min-width: 0; min-height: 100%; color-scheme: dark; background: var(--bg); color: var(--text); font-family: var(--sans); }
+  body { margin: 0; min-width: 0; min-height: 100dvh; overflow: hidden; }
+  button, input, select, textarea { font: inherit; }
+  button { color: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: none; box-shadow: var(--focus); }
+  a { color: var(--p); }
+  img, canvas, svg { display: block; max-width: 100%; }
+  button, summary { -webkit-tap-highlight-color: transparent; }
+  .skip-link {
+    position: absolute;
+    top: -1000px;
+    left: 0;
+    z-index: 500;
+    padding: 10px 16px;
+    background: var(--a);
+    color: var(--bg);
+    font: 700 12px var(--mono, var(--sans));
+    text-decoration: none;
+    border-radius: 0 0 8px 0;
+  }
+  .skip-link:focus {
+    top: 0;
+  }
+}
+@layer tokens {
+  /* NOTA: las variables --v4-* / --lg-* (colores, radios, tipografía, layout)
+     viven en 00-variables-theme.css, ahora dentro de @layer variables (ver
+     00-layer-order.css para el orden global). Antes ese archivo estaba SIN
+     @layer a propósito para que sus valores le ganaran siempre a cualquier
+     versión en capa — pero eso también le ganaba a los @media de
+     responsive.css que pisan --v4-gap/--lg-sidebar-w/--lg-shell-header-h en
+     pantallas chicas, así que esos ajustes responsive nunca se aplicaban.
+     Se corrigió poniéndolo en @layer variables, ubicado ANTES de responsive
+     en el orden global — así los breakpoints sí ganan cuando corresponde.
+     .sr-only vive únicamente en 99-utilities.css (estaba duplicado acá). */
+  .hidden, .lgjs-hidden, .hidden-panel { display: none !important; }
+}
