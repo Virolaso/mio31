@@ -202,9 +202,20 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', runRestore, { once: true });
     else runRestore();
     autoSaveTimer = setInterval(() => save('autosave'), AUTO_SAVE_MS);
-    const schedule = () => scheduleSave('ui-change');
-    document.addEventListener('change', schedule, { capture: true, passive: true });
-    document.addEventListener('input', schedule, { capture: true, passive: true });
+    // P2 (audit): antes el listener se ataba a TODO `change`/`input`
+    // en captura sobre document. Eso significaba que escribir en un
+    // input NO persistible (e.g. un campo de texto cualquiera)
+    // disparaba un `scheduleSave` gratuito — el debounce de 1500ms
+    // filtraba los duplicados, pero el scheduling igual corría.
+    // Ahora filtramos en captura: solo reagimos si el target es
+    // un input que SÍ se persiste. Si el documento no tiene
+    // inputs persistibles, ni siquiera se agenda el save.
+    const scheduleIfPersistable = (e) => {
+      if (!e.target || !shouldPersist(e.target)) return;
+      scheduleSave('ui-change');
+    };
+    document.addEventListener('change', scheduleIfPersistable, { capture: true, passive: true });
+    document.addEventListener('input', scheduleIfPersistable, { capture: true, passive: true });
     global.addEventListener('pagehide', () => save('pagehide'), { once: true });
     global.addEventListener('beforeunload', () => save('beforeunload'), { once: true });
   }

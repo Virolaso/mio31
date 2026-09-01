@@ -30,16 +30,28 @@
       }
 
       let selectedFile = null;
-      let cachedFileBuffer = null; // ArrayBuffer cacheado al seleccionar el archivo
+      // P6 (audit): cachedFileBuffer se eliminó. Antes se cacheaba
+      // el ArrayBuffer completo (hasta 200MB) para A/B comparison;
+      // 09-visualizers.js ahora lee directamente de selectedFile
+      // (que ya es un Blob). loadFileBuffer() hace arrayBuffer()
+      // localmente y lo libera al terminar.
       let _previewSessionId = null; // UUID que identifica el archivo actual en el caché del servidor
       let _previewLibraryId = null; // id del archivo en la librería persistente del servidor, si se eligió de ahí
       let currentJobId = null;
       let downloadUrl = null;
 
       // ── Cache de colores del tema ────────────────────────────────────────────────
-      // Las variables --bg/--accent/etc. son fijas (no hay theme switcher), así que
-      // evitamos forzar un recálculo de estilos (getComputedStyle) en cada redibujo
-      // de canvas (EQ curve, waveform, FFT) — se lee una sola vez y se reusa.
+      // P4 (audit): el comentario original decía "no hay theme switcher,
+      // las variables son fijas". 00-theme-manager.js tiene 11 temas
+      // y un switcher (#theme-switcher-btn) que SÍ cambia los CSS vars.
+      // El cache se invalidaba solo en page reload, así que al cambiar
+      // tema, todos los canvas (EQ curve, waveform, FFT) seguían
+      // dibujando con los colores del tema anterior.
+      //
+      // Fix: invalidar el cache cuando cambian los atributos del <html>
+      // que controlan el tema. Usamos MutationObserver acotado al
+      // <html> con attributeFilter, que es mucho más barato que
+      // observar todo el DOM.
       let _themeColorsCache = null;
       function themeColors() {
         if (_themeColorsCache) return _themeColorsCache;
@@ -60,6 +72,20 @@
           get: (varName) => read(varName), // fallback para nombres arbitrarios tipo '--foo'
         };
         return _themeColorsCache;
+      }
+      function invalidateThemeColors() {
+        _themeColorsCache = null;
+      }
+      // P4: invalidar el cache cuando cambia el tema en el <html>.
+      // 00-theme-manager.js setea 'data-theme' y opcionalmente
+      // 'data-studio-theme'/'data-studio-variant'. attributeFilter
+      // hace que el observer solo dispare para esos 3 atributos.
+      if (typeof MutationObserver !== 'undefined') {
+        const themeObserver = new MutationObserver(invalidateThemeColors);
+        themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-theme', 'data-studio-theme', 'data-studio-variant'],
+        });
       }
 
       // ── Nombre del tema para la descarga ────────────────────────────────────────
@@ -126,10 +152,13 @@
       // las variables de estado del módulo, no solo selectedFile/lastAnalysisData.
       // Si una clave nueva se agrega, sumarla a BRIDGED_KEYS. 00-state-simple.js
       // envuelve los setters para emitir notify() en las claves críticas.
+      //
+      // P6 (audit): 'cachedFileBuffer' ya no se cachea (loadFileBuffer
+      // lo lee localmente y lo libera). Lo sacamos del BRIDGED_KEYS y
+      // del switch para no exponer una propiedad siempre-null.
       const BRIDGED_KEYS = [
         'selectedFile',
         'lastAnalysisData',
-        'cachedFileBuffer',
         'previewSessionId',
         'previewLibraryId',
         'currentJobId',
@@ -140,7 +169,6 @@
         switch (key) {
           case 'selectedFile': backing = () => selectedFile; break;
           case 'lastAnalysisData': backing = () => lastAnalysisData; break;
-          case 'cachedFileBuffer': backing = () => cachedFileBuffer; break;
           case 'previewSessionId': backing = () => _previewSessionId; break;
           case 'previewLibraryId': backing = () => _previewLibraryId; break;
           case 'currentJobId': backing = () => currentJobId; break;
@@ -155,7 +183,6 @@
             switch (key) {
               case 'selectedFile': selectedFile = value; break;
               case 'lastAnalysisData': lastAnalysisData = value; break;
-              case 'cachedFileBuffer': cachedFileBuffer = value; break;
               case 'previewSessionId': _previewSessionId = value; break;
               case 'previewLibraryId': _previewLibraryId = value; break;
               case 'currentJobId': currentJobId = value; break;

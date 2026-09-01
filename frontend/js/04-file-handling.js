@@ -228,8 +228,23 @@
       loadLibraryWhenAuthenticated();
 
       async function loadFileBuffer(f) {
-        cachedFileBuffer = await f.arrayBuffer(); // cachear para reusar en previews
-        const buf = await LGMDM.audio.decode(cachedFileBuffer);
+        // P6 (audit): el patrón original cacheaba el ArrayBuffer
+        // completo del archivo (hasta 200MB) en `cachedFileBuffer`
+        // para que `09-visualizers.js:setupABPlayer` pudiera
+        // reconstruir el Blob original para A/B comparison.
+        // Resultado: 2x memoria (el File + el ArrayBuffer).
+        //
+        // 09-visualizers.js ya no usa `cachedFileBuffer` — lee
+        // directamente de `selectedFile`. Por lo tanto podemos
+        // decodificar y soltar la referencia sin afectar A/B.
+        //
+        // `decodeAudioData` requiere ArrayBuffer (no acepta Blob),
+        // así que la copia sigue siendo inevitable, pero ahora
+        // vive solo en una variable local que se libera al
+        // terminar la función.
+        const ab = await f.arrayBuffer();
+        cachedFileBuffer = null; // P6: ya no se cachea
+        const buf = await LGMDM.audio.decode(ab);
         drawWaveform(buf);
         // Un único contexto Web Audio compartido; no crear/cerrar contextos locales.
       }

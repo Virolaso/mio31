@@ -584,16 +584,25 @@ function _renderABPlayer() {
 }
 
 async function setupABPlayer(masterBlob) {
-  const origBlob = cachedFileBuffer
-    ? new Blob([cachedFileBuffer], { type: selectedFile?.type || "audio/wav" })
-    : null;
-  if (!origBlob) return;
+  // P6 (audit): antes reconstruía el Blob original desde
+  // `cachedFileBuffer` (un ArrayBuffer de hasta 200MB cacheado en
+  // 04-file-handling.js:loadFileBuffer). Eso implicaba tener el
+  // archivo completo en RAM 2 veces: como File (selectedFile) y
+  // como ArrayBuffer (cachedFileBuffer).
+  //
+  // Ahora usamos `selectedFile` (que YA es un Blob) directamente.
+  // `cachedFileBuffer` queda deprecated para este consumer; en un
+  // follow-up se puede eliminar completamente.
+  if (!selectedFile) return;
 
   const ctx = _abGetCtx();
 
-  // Decodificar ambos en paralelo
+  // Decodificar ambos en paralelo. selectedFile.arrayBuffer() es
+  // la única copia nueva que necesitamos — decodeAudioData
+  // transfiere la propiedad al AudioContext, así que después
+  // podemos soltar la referencia.
   const [origAB, masterAB] = await Promise.all([
-    origBlob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)),
+    selectedFile.arrayBuffer().then(ab => ctx.decodeAudioData(ab)),
     masterBlob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)),
   ]);
 

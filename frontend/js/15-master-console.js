@@ -249,9 +249,23 @@
     });
     syncTrackInfo(); updateReadouts(); updateStageCards();
     const observer=new MutationObserver(syncTrackInfo); const fileName=LGMDM.dom.byId('fileName'); if(fileName)observer.observe(fileName,{childList:true,subtree:true,characterData:true});
-    const tick=()=>{
+    // P5 (audit): antes tick() corría a 60fps y llamaba drawWaveform()
+    // en cada frame. La animación de phase cambia con el tiempo,
+    // así que el draw no es 100% cacheable, pero sí podemos
+    // reducir la frecuencia a 30fps (mismo patrón que
+    // 19-performance-optimization.js:OptimizedMeterDisplay) y skipear
+    // el draw cuando el workspace no es 'console'.
+    const TARGET_FPS = 30;
+    const FRAME_MS = 1000 / TARGET_FPS;
+    let lastFrame = 0;
+    const tick=(now)=>{
       const onConsole = document.body.dataset.workspace === "console";
-      if(onConsole){ drawWaveform(); syncMetersFromDom(); window.LGMDM?.spectrum?.redraw?.(); }
+      if (onConsole && (now - lastFrame) >= FRAME_MS) {
+        drawWaveform();
+        syncMetersFromDom();
+        window.LGMDM?.spectrum?.redraw?.();
+        lastFrame = now;
+      }
       state.audio=getPreviewAudio();
       const audio=state.audio;
       if(audio && onConsole){LGMDM.dom.byId('consoleTime').textContent=formatTime(audio.currentTime);LGMDM.dom.byId('consoleDuration').textContent=formatTime(audio.duration);const ph=LGMDM.dom.byId('consolePlayhead');if(Number.isFinite(audio.duration)&&audio.duration>0&&ph)ph.style.left=`${audio.currentTime/audio.duration*100}%`; } state.raf=requestAnimationFrame(tick);};

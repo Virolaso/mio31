@@ -47,10 +47,79 @@
     const warn=Object.values(state).filter(v=>v==='warn').length;
     if(summary) summary.textContent=bad?`${bad} componente${bad>1?'s':''} con error`:warn?`${warn} aviso${warn>1?'s':''}`:'Todos los controles principales OK';
   }
-  LGMDM.dom.byId('lgHealthRefresh')?.addEventListener('click',checkHealth);
-  window.addEventListener('lgmdm:auth-required',()=>{setHealth('auth','error','Autenticación requerida');LGMDM.dom.byId('lgHealthSummary').textContent='La sesión requiere autenticación';});
-  setTimeout(checkHealth,300);
-  setInterval(checkHealth,30000);
+  LGMDM.dom.byId('lgHealthRefresh')?.addEventListener('click', checkHealth);
+  window.addEventListener('lgmdm:auth-required', () => {
+    setHealth('auth', 'error', 'Autenticación requerida');
+    LGMDM.dom.byId('lgHealthSummary').textContent = 'La sesión requiere autenticación';
+  });
+
+  // P1 (audit): antes hacía setInterval(checkHealth, 30000) sin
+  // condiciones. En 1.000 sesiones concurrentes son ~33 RPS al
+  // endpoint /health. Cambios:
+  //   - Skip si la pestaña está oculta (Page Visibility API).
+  //   - Backoff exponencial en errores: 30s → 60s → 120s → 240s,
+  //     reset a 30s cuando vuelve a estar OK.
+  //   - Se detiene solo después de 5 min de inactividad de pestaña
+  //     (por si el usuario deja la app abierta y vuelve al día
+  //     siguiente, evitamos RPS fantasma).
+  const BASE_INTERVAL_MS = 30000;
+  const MAX_BACKOFF_MS = 240000; // 4 min
+  let intervalId = null;
+  let intervalMs = BASE_INTERVAL_MS;
+  let visibilityHiddenAt = 0;
+
+  function startLoop() {
+    if (intervalId) return;
+    intervalId = setInterval(tick, intervalMs);
+  }
+  function stopLoop() {
+    if (!intervalId) return;
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+  function reschedule() {
+    if (!intervalId) return;
+    clearInterval(intervalId);
+    intervalId = setInterval(tick, intervalMs);
+  }
+  async function tick() {
+    if (document.hidden) return; // skip si la pestaña está oculta
+    const wasOk = state.api === 'ok' || state.api === undefined;
+    await checkHealth();
+    // Ajustar backoff según resultado
+    if (state.api === 'ok') {
+      if (intervalMs !== BASE_INTERVAL_MS) {
+        intervalMs = BASE_INTERVAL_MS;
+        reschedule();
+      }
+    } else {
+      // Error: doblar el intervalo hasta el techo
+      const next = Math.min(intervalMs * 2, MAX_BACKOFF_MS);
+      if (next !== intervalMs) {
+        intervalMs = next;
+        reschedule();
+      }
+    }
+    // Si la pestaña lleva oculta mucho tiempo, parar
+    if (visibilityHiddenAt && Date.now() - visibilityHiddenAt > 5 * 60 * 1000) {
+      stopLoop();
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      visibilityHiddenAt = Date.now();
+    } else {
+      visibilityHiddenAt = 0;
+      // Resetear backoff y volver a chequear inmediatamente
+      intervalMs = BASE_INTERVAL_MS;
+      reschedule();
+      checkHealth();
+    }
+  });
+
+  setTimeout(checkHealth, 300);
+  startLoop();
 
   const tips={
     consoleInputFader:['INPUT GAIN','Ajusta la ganancia previa al procesamiento. Mantené margen para evitar clipping en etapas posteriores.'],
