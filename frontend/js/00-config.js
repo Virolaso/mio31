@@ -27,4 +27,26 @@
   } else {
     applyConfigToDocument();
   }
+
+  // Q20 (audit): si el DOM se regenera después del load inicial
+  // (e.g. cambio de workspace que recrea paneles), los nodos con
+  // data-lgmdm-max-file-mb vuelven a tener su texto de template
+  // sin el valor de MAX_FILE_MB. Escuchamos inserciones top-level
+  // y re-aplicamos solo a los nodos nuevos.
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (typeof node.matches === 'function' && node.matches('[data-lgmdm-max-file-mb]')) {
+          node.textContent = String(MAX_FILE_MB);
+        }
+        if (typeof node.querySelectorAll === 'function') {
+          node.querySelectorAll('[data-lgmdm-max-file-mb]').forEach((el) => {
+            el.textContent = String(MAX_FILE_MB);
+          });
+        }
+      }
+    }
+  });
+  observer.observe(document.documentElement, { childList: true });
 })(window);

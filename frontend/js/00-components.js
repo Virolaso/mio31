@@ -9,11 +9,29 @@
       super();
       this.classList.add('toast');
       this._removeTimer = null;
+      // Q21 (audit): trackear también el timer interno de la animación
+      // de cierre, así disconnectedCallback puede limpiarlo y no queda
+      // colgando si el toast se desconecta antes de los 300ms.
+      this._closeAnimationTimer = null;
     }
 
     connectedCallback() {
       if (!this.hasAttribute('role')) this.setAttribute('role', 'status');
       this.render();
+    }
+
+    // Q21 (audit): si el toast se remueve del DOM (manual o porque
+    // cambió el workspace), limpiamos los timers pendientes. Antes
+    // quedaban vivos referenciando al elemento, evitando GC.
+    disconnectedCallback() {
+      if (this._removeTimer) {
+        clearTimeout(this._removeTimer);
+        this._removeTimer = null;
+      }
+      if (this._closeAnimationTimer) {
+        clearTimeout(this._closeAnimationTimer);
+        this._closeAnimationTimer = null;
+      }
     }
 
     render() {
@@ -33,10 +51,15 @@
 
     scheduleRemove(duration) {
       if (this._removeTimer) clearTimeout(this._removeTimer);
+      if (this._closeAnimationTimer) clearTimeout(this._closeAnimationTimer);
       if (duration <= 0) return;
       this._removeTimer = setTimeout(() => {
+        this._removeTimer = null;
         this.classList.add('toast-closing');
-        setTimeout(() => this.remove(), 300);
+        this._closeAnimationTimer = setTimeout(() => {
+          this._closeAnimationTimer = null;
+          this.remove();
+        }, 300);
       }, duration);
     }
   }

@@ -132,13 +132,15 @@
 
   // ── Registrar event listener global ──
   function setupKeyboardShortcuts() {
+    // Q22 (audit): antes el guard `if (bound) return` se repetía dos
+    // veces consecutivas (líneas 137 y 141 originales) y el `bound = true`
+    // también. El segundo bloque era código muerto — el primero ya
+    // hubiera cortado la ejecución. Lo unificamos.
     if (setupKeyboardShortcuts.bound) return;
     setupKeyboardShortcuts.bound = true;
     const focusableInputs = new Set(['input', 'textarea', 'select']);
     const excludeAdjustement = new Set(['input', 'textarea']);
 
-    if (setupKeyboardShortcuts.bound) return;
-    setupKeyboardShortcuts.bound = true;
     document.addEventListener('keydown', (e) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isInput = focusableInputs.has(activeTag) && !e.ctrlKey && !e.metaKey;

@@ -25,18 +25,43 @@ const API = () => {
 // Ahora la lógica es inversa: el doble-tap para zoom sigue funcionando
 // siempre; solo se ignora el segundo click sintético que algunos
 // navegadores disparan en `<button>` (lo que producía doble-activación).
+//
+// Q23 (audit): la primera versión de este fix usaba `e.stopPropagation()`
+// en captura global sobre `document`, lo que mataba TODOS los listeners
+// de click de los 25 módulos que hacen event delegation (109 addEventListener
+// de click en el proyecto). Ahora:
+//   1) El listener se registra SOLO en capture (no bubble), así
+//      tenemos la primera oportunidad de ver el click.
+//   2) Usamos `e.stopImmediatePropagation()` (no `stopPropagation`)
+//      que solo cancela el resto de listeners del MISMO target, no
+//      los listeners de captura/bubble de nodos ancestros.
+//   3) Solo aplicamos dedup si el target es un <button> o tiene
+//      role=button/tab/menuitem — no afecta clics en links, sliders,
+//      inputs de texto, ni en divs arbitrarios.
 (function () {
-  // Evita que un toque rápido sobre un botón se registre dos veces
-  // (algunos browsers emiten 'click' además de 'touchend' + 'click').
-  // 350ms cubre la ventana del iOS WebKit para double-tap-to-zoom.
   let lastClickAt = 0;
   const DEDUP_MS = 350;
+  const isInteractive = (el) => {
+    if (!el) return false;
+    const tag = el.tagName;
+    if (tag === 'BUTTON' || tag === 'SUMMARY') return true;
+    if (el.getAttribute && el.getAttribute('role')) {
+      const role = el.getAttribute('role');
+      if (['button', 'tab', 'menuitem', 'switch', 'checkbox'].includes(role)) return true;
+    }
+    return false;
+  };
   document.addEventListener(
     'click',
     (e) => {
       const now = Date.now();
-      if (now - lastClickAt < DEDUP_MS) {
-        e.stopPropagation();
+      if (now - lastClickAt < DEDUP_MS && isInteractive(e.target)) {
+        // Cancela el resto de listeners del mismo target (no de
+        // ancestros) — así el handler de este botón no se dispara
+        // dos veces, pero los listeners de document/window en otros
+        // módulos siguen viendo el evento.
+        e.stopImmediatePropagation();
+        e.preventDefault();
         return;
       }
       lastClickAt = now;
