@@ -103,7 +103,7 @@
           <div class="eyebrow">WORKFLOW</div>
           <strong>Mastering Workspace</strong>
         </div>
-        <button aria-label="Contraer panel" class="lg-collapse-btn" id="sidebarCollapseBtn" type="button">‹</button>
+        <button aria-label="Contraer panel" aria-expanded="true" aria-controls="workflowSidebar" class="lg-collapse-btn" id="sidebarCollapseBtn" type="button">‹</button>
       </div>
       <div class="sidebar-tabs" id="sidebarTabs">
         <button class="sidebar-tab active" data-pane="pane-cadena" type="button">⛓ Cadena</button>
@@ -1801,7 +1801,7 @@
                           <button aria-label="Detener preview" class="lg-transport-btn" id="consoleStopBtn" type="button">■</button>
                           <button class="lg-transport-btn" id="consoleAnalyzeSmall" type="button">ANALIZAR</button>
                           <button class="lg-transport-btn accent" id="consoleMasterSmall" type="button">MASTERIZAR</button>
-                          <button aria-label="Alternar A/B" class="lg-transport-btn" id="consoleABToggle" type="button">A/B</button>
+                          <button aria-label="Alternar A/B" aria-pressed="true" class="lg-transport-btn" id="consoleABToggle" type="button">A/B</button>
                         </div>
                         <div class="lg-transport-status"><span class="lg-status-dot"></span><span id="consoleStatus">Listo para recibir audio</span></div>
                         <div aria-live="polite" class="preview-audio" id="previewAudioWrap"></div>
@@ -1957,7 +1957,7 @@
     <div class="ai-title"><b>AI Mastering Assistant</b><small id="aiStatusLine">Conectando…</small></div>
     <button aria-label="Cerrar" class="ai-close" id="aiClose" type="button">✕</button>
   </header>
-  <div class="ai-messages" id="aiMessages"></div>
+  <div class="ai-messages" id="aiMessages" role="log" aria-live="polite" aria-relevant="additions"></div>
   <div class="ai-suggestions" id="aiSuggestions"></div>
   <div class="ai-inputrow">
     <textarea aria-label="Mensaje para el asistente" id="aiInput" placeholder="Preguntale algo sobre tu mezcla…" rows="1"></textarea>

@@ -290,9 +290,42 @@
       if (e.key === 'Escape') {
         modal.remove();
         document.removeEventListener('keydown', handleEscape);
+        document.removeEventListener('keydown', handleFocusTrap);
       }
     };
     document.addEventListener('keydown', handleEscape);
+
+    // A1 (audit): focus trap. Sin esto, Tab escapa del modal y los
+    // screen readers pierden contexto. WCAG 2.4.3 (Focus Order).
+    const previouslyFocused = document.activeElement;
+    closeBtn.focus();
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const handleFocusTrap = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = Array.from(content.querySelectorAll(focusableSelector)).filter(
+        (el) => !el.disabled && el.offsetParent !== null
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleFocusTrap);
+
+    // Restaurar foco al cerrar
+    const originalRemove = modal.remove.bind(modal);
+    modal.remove = function() {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleFocusTrap);
+      if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+      originalRemove();
+    };
 
     // Anunciar a screen readers
     window.LGMDM?.a11y?.announce?.('Atajos de teclado abiertos. Presiona Escape para cerrar.', 'polite');

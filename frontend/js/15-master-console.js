@@ -99,6 +99,11 @@
     LGMDM.dom.byId('consoleABReadout')?.replaceChildren(document.createTextNode(mode === 'master' ? 'MASTER' : 'ORIGINAL'));
     LGMDM.dom.byId('consoleABMaster')?.classList.toggle('active', mode === 'master');
     LGMDM.dom.byId('consoleABOriginal')?.classList.toggle('active', mode === 'original');
+    // A7 (audit): sincronizar aria-pressed del botón A/B. Sin esto,
+    // los screen readers no anuncian el estado actual (MASTER vs ORIGINAL).
+    // WCAG 4.1.2.
+    const abBtn = LGMDM.dom.byId('consoleABToggle');
+    if (abBtn) abBtn.setAttribute('aria-pressed', mode === 'master' ? 'true' : 'false');
     if (typeof window.LGMDM?.ab?.setMode === 'function') {
       try { window.LGMDM.ab.setMode(mode); return; } catch (_) {}
     }

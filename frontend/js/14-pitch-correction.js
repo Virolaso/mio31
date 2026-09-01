@@ -120,9 +120,11 @@
         document.querySelectorAll('.pc-mode-btn').forEach(b => {
           b.style.borderColor = 'var(--border)';
           b.style.color = 'var(--text)';
+          b.setAttribute('aria-checked', 'false'); // A5: sincronizar aria-checked
         });
         e.target.style.borderColor = 'var(--amber)';
         e.target.style.color = 'var(--amber)';
+        e.target.setAttribute('aria-checked', 'true');
       });
     });
 
