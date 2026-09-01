@@ -32,6 +32,34 @@
   .skip-link:focus {
     top: 0;
   }
+
+  /* C-A3 (audit): cursor de resize en handles. En touch devices
+     (pointer: coarse) el cursor es invisible, pero en hybrid devices
+     (laptop con touch) sí se ve — usar ew-resize / ns-resize que
+     están en todos los OS. En pointer: fine el cursor nativo funciona. */
+  .lg-resize-handle, .cns-handle, .cns-handle-h,
+  #cnsHandleLeft, #cnsHandleRight, #cnsVHandle,
+  #cnsHHandleWave, #cnsHHandleAna, #cnsHandleGr {
+    cursor: ew-resize;
+  }
+  .lg-header-resize-handle, .panel-resize-handle-bottom,
+  #cnsHHandleWave, #cnsHHandleAna {
+    cursor: ns-resize;
+  }
+  .ai-panel-resize-handle {
+    cursor: nwse-resize;
+  }
+  @media (pointer: coarse) {
+    /* En touch, el cursor es invisible — reemplazamos con un
+       indicador visual más grande. */
+    .lg-resize-handle, .cns-handle, #cnsHandleLeft, #cnsHandleRight {
+      background: linear-gradient(90deg, transparent 30%, var(--v4-accent, var(--p)) 50%, transparent 70%);
+      min-width: 14px;
+    }
+    .lg-header-resize-handle, #cnsHHandleWave, #cnsHHandleAna {
+      min-height: 14px;
+    }
+  }
 }
 // CL-1 (audit): el bloque @layer tokens que estaba acá solo contenía
 // `.hidden/.lgjs-hidden/.hidden-panel { display: none !important; }` —
