@@ -32,14 +32,29 @@
     return '';
   }
 
+  // S9 (audit): whitelist defensivo de formatos conocidos. Si el atributo
+  // `data-display-format` del HTML fue manipulado o se agregó un valor
+  // nuevo sin actualizar este switch, caemos a String(value) en vez de
+  // propagar un formato inesperado.
+  const KNOWN_DISPLAY_FORMATS = new Set(['percent', 'fixed1', 'fixed2', 'fixed1s', 'raw']);
+
   function formatDisplay(value, format) {
+    if (!KNOWN_DISPLAY_FORMATS.has(format)) {
+      return String(value ?? '');
+    }
     const n = Number(value);
     switch (format) {
-      case 'percent': return `${value}%`;
-      case 'fixed1': return Number.isFinite(n) ? n.toFixed(1) : String(value);
-      case 'fixed2': return Number.isFinite(n) ? n.toFixed(2) : String(value);
-      case 'fixed1s': return Number.isFinite(n) ? `${n.toFixed(1)}s` : String(value);
-      default: return String(value);
+      case 'percent':
+        return Number.isFinite(n) ? `${n}%` : String(value);
+      case 'fixed1':
+        return Number.isFinite(n) ? n.toFixed(1) : String(value);
+      case 'fixed2':
+        return Number.isFinite(n) ? n.toFixed(2) : String(value);
+      case 'fixed1s':
+        return Number.isFinite(n) ? `${n.toFixed(1)}s` : String(value);
+      case 'raw':
+      default:
+        return String(value ?? '');
     }
   }
 

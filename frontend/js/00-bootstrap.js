@@ -18,25 +18,34 @@ const API = () => {
   return 'https://masteringstudio-api.duckdns.org';
 };
 
-// Prevenir zoom por doble-tap en mobile.
+// Touch helpers.
+// S14 (audit): el handler anterior hacía `e.preventDefault()` en CUALQUIER
+// `touchend` que ocurriera a menos de 300ms del anterior. Eso bloqueaba
+// el pinch-zoom (WCAG 1.4.4 Resize text) para usuarios con baja visión.
+// Ahora la lógica es inversa: el doble-tap para zoom sigue funcionando
+// siempre; solo se ignora el segundo click sintético que algunos
+// navegadores disparan en `<button>` (lo que producía doble-activación).
 (function () {
-  let lastTouchEnd = 0;
+  // Evita que un toque rápido sobre un botón se registre dos veces
+  // (algunos browsers emiten 'click' además de 'touchend' + 'click').
+  // 350ms cubre la ventana del iOS WebKit para double-tap-to-zoom.
+  let lastClickAt = 0;
+  const DEDUP_MS = 350;
   document.addEventListener(
-    "touchend",
+    'click',
     (e) => {
       const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault();
+      if (now - lastClickAt < DEDUP_MS) {
+        e.stopPropagation();
+        return;
       }
-      lastTouchEnd = now;
+      lastClickAt = now;
     },
-    false
+    true, // capture: filtramos antes que los listeners de los módulos.
   );
 
   // Reajustar el viewport al rotar el dispositivo.
-  window.addEventListener("orientationchange", () => {
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-    }, 100);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => { window.scrollTo(0, 0); }, 100);
   });
 })();

@@ -146,7 +146,16 @@
           delBtn.style.cssText = "background:none;border:none;color:inherit;opacity:.6;cursor:pointer;flex-shrink:0;";
           delBtn.addEventListener("click", async (e) => {
             e.stopPropagation();
-            if (!confirm(`¿Borrar "${f.original_filename}" de la librería?`)) return;
+            // S7 (audit): sanitizar el nombre antes de meterlo en confirm().
+            // confirm() muestra texto plano, no es vector XSS, pero un
+            // nombre con \n o caracteres de control confunde el diálogo
+            // y permite DoS visual. Acotamos a 80 chars en una sola línea.
+            const safeName = String(f.original_filename || '')
+              .replace(/[\r\n\t]+/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 80);
+            if (!confirm(`¿Borrar "${safeName}" de la librería?`)) return;
             await deleteLibraryFile(f.id);
           });
           row.appendChild(info);

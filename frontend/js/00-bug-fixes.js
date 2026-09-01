@@ -83,32 +83,21 @@
   };
 
   // BUG FIX #5: Validar getElementById antes de usar
-  const originalGetElementById = document.getElementById;
-  document.getElementById = function(id) {
-    if (!id || typeof id !== 'string') {
-      console.warn('⚠️ getElementById: id inválido', id);
-      return null;
-    }
-    return originalGetElementById.call(this, id);
-  };
+  // REMOVIDO (S2 del audit): parchar document.getElementById globalmente es
+  // frágil y rompe cualquier dependencia externa que asuma la firma nativa.
+  // LGMDM.dom.byId() y LGMDM.dom.requireById() ya hacen esta validación en
+  // el namespace controlado; no hace falta parchar el prototipo global.
 
   // BUG FIX #6: Catch blocks vacíos - al menos loguear
   // (Esto se aplica automáticamente a nuevos try-catch)
 
   // BUG FIX #7: Validar fetch responses
-  const originalFetch = window.fetch;
-  window.fetch = function(url, options = {}) {
-    if (!url) {
-      console.error('⚠️ fetch: URL no válida');
-      return Promise.reject(new Error('Invalid URL'));
-    }
-
-    return originalFetch.apply(this, arguments)
-      .catch(error => {
-        console.error(`⚠️ Fetch error (${url}):`, error.message);
-        throw error;
-      });
-  };
+  // REMOVIDO (S2 del audit): 00-api.js ya envuelve window.fetch con su
+  // propio apiFetch() (auth/CSRF/timeout/retry). Parchar fetch una segunda
+  // vez acá causaba comportamiento dependiente del orden de carga.
+  // El logging de errores queda cubierto por el global 'error' y
+  // 'unhandledrejection' de 00-error-wrapper.js, y por Sentry via
+  // 00-observability.js si está configurado.
 
   // BUG FIX #8: Validar audio elements antes de reproducir
   window.safeAudioPlay = function(audioElement) {

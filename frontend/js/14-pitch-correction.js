@@ -146,9 +146,15 @@
       })
       .then(data => {
         if (Array.isArray(data.files)) {
+          const esc = (typeof LGMDM?.ui?.escapeHtml === 'function')
+            ? LGMDM.ui.escapeHtml
+            : (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+          // FIX XSS: el nombre de archivo provenía del backend y se inyectaba
+          // directo en innerHTML. Si la API devolvía un filename con "<script>" o
+          // comillas, se ejecutaba en la página. Se escapa antes de interpolar.
           select.innerHTML = '<option value="">— No seleccionada —</option>' +
-            data.files.slice(0, 20).map(item => 
-              `<option value="${item.id}">${item.original_filename}</option>`
+            data.files.slice(0, 20).map(item =>
+              `<option value="${esc(String(item.id ?? ''))}">${esc(String(item.original_filename ?? ''))}</option>`
             ).join('');
         }
       })

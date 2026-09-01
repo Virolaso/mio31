@@ -1984,8 +1984,11 @@
 <script src="js/00-xss-protection.js"></script>
 <script src="js/00-async-safety.js"></script>
 <script src="js/00-storage.js"></script>
-<script src="js/00-state-simple.js"></script>
+<!-- S11 (audit): 01-state.js debe cargar ANTES de 00-state-simple.js.
+     00-state-simple.js envuelve los setters que 01-state.js define
+     para emitir notify() — si carga antes, sus setters se pisan. -->
 <script src="js/01-state.js"></script>
+<script src="js/00-state-simple.js"></script>
 <script src="js/00-persistence.js"></script>
 <script src="js/00-api.js"></script>
 <script src="js/00-auth.js"></script>

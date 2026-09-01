@@ -122,9 +122,49 @@
       const _publicState = window.LGMDM?.state || (window.LGMDM = window.LGMDM || {}, window.LGMDM.state = {});
       _publicState.reference = _publicState.reference || { file: null, libraryId: null };
       _publicState.runtime = _publicState.runtime || { preview: {}, reference: _publicState.reference, audio: {} };
-      Object.defineProperty(_publicState, "selectedFile", { get: () => selectedFile, set: (value) => { selectedFile = value; }, configurable: true });
-      Object.defineProperty(_publicState, "lastAnalysisData", { get: () => lastAnalysisData, set: (value) => { lastAnalysisData = value; }, configurable: true });
-      for (const key of ["selectedFile", "lastAnalysisData"]) {
+      // S11 (audit): el puente de LGMDM.state → window.X ahora cubre TODAS
+      // las variables de estado del módulo, no solo selectedFile/lastAnalysisData.
+      // Si una clave nueva se agrega, sumarla a BRIDGED_KEYS. 00-state-simple.js
+      // envuelve los setters para emitir notify() en las claves críticas.
+      const BRIDGED_KEYS = [
+        'selectedFile',
+        'lastAnalysisData',
+        'cachedFileBuffer',
+        'previewSessionId',
+        'previewLibraryId',
+        'currentJobId',
+        'downloadUrl',
+      ];
+      for (const key of BRIDGED_KEYS) {
+        let backing;
+        switch (key) {
+          case 'selectedFile': backing = () => selectedFile; break;
+          case 'lastAnalysisData': backing = () => lastAnalysisData; break;
+          case 'cachedFileBuffer': backing = () => cachedFileBuffer; break;
+          case 'previewSessionId': backing = () => _previewSessionId; break;
+          case 'previewLibraryId': backing = () => _previewLibraryId; break;
+          case 'currentJobId': backing = () => currentJobId; break;
+          case 'downloadUrl': backing = () => downloadUrl; break;
+          default: continue;
+        }
+        Object.defineProperty(_publicState, key, {
+          configurable: true,
+          enumerable: true,
+          get: backing,
+          set: (value) => {
+            switch (key) {
+              case 'selectedFile': selectedFile = value; break;
+              case 'lastAnalysisData': lastAnalysisData = value; break;
+              case 'cachedFileBuffer': cachedFileBuffer = value; break;
+              case 'previewSessionId': _previewSessionId = value; break;
+              case 'previewLibraryId': _previewLibraryId = value; break;
+              case 'currentJobId': currentJobId = value; break;
+              case 'downloadUrl': downloadUrl = value; break;
+              default: break;
+            }
+          },
+        });
+        // Backwards-compat: window.selectedFile, window.lastAnalysisData, etc.
         const existing = Object.getOwnPropertyDescriptor(window, key);
         if (!existing || existing.configurable) {
           Object.defineProperty(window, key, {

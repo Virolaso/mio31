@@ -1,84 +1,65 @@
 // ============================================================
-// 00-no-autoplay.js — Bloqueo total de autoplay
-// Debe cargar PRIMERO en index.html
+// 00-no-autoplay.js — Bloqueo de autoplay no solicitado
+//
+// HISTÓRICO (S3/S4 del audit):
+//   Antes este archivo parchaba:
+//     - `document.createElement` para que los <audio> creados
+//       no pudieran tener `autoplay`.
+//     - `Element.prototype.innerHTML` para remover el atributo
+//       `autoplay` de cualquier HTML string asignado.
+//     - `Element.prototype.setAttribute` para rechazar
+//       setAttribute('autoplay', ...).
+//   Esos 3 parches globales eran FRÁGILES: cualquier librería
+//   que asumiera semántica nativa de esos prototipos (incluida
+//   la propia 00-persistence.js al rehidratar formularios)
+//   podía tener side-effects raros.
+//
+// QUEDA:
+//   - Un único MutationObserver acotado a `document.body` que
+//     observa solo `addedNodes` (sin `subtree`), en una sola
+//     pasada al DOMContentLoaded. Mucho más barato y sin
+//     tocar prototipos.
 // ============================================================
 
-(function() {
+(function () {
   "use strict";
 
-  // Interceptar creación de elementos audio
-  const originalCreateElement = document.createElement;
-  document.createElement = function(tagName, ...args) {
-    const element = originalCreateElement.call(document, tagName, ...args);
-    
-    if (tagName.toLowerCase() === 'audio') {
-      // Nunca autoplay
-      Object.defineProperty(element, 'autoplay', {
-        set: function() { /* ignorar */ },
-        get: function() { return false; }
+  function stripAutoplay(root) {
+    if (!root) return;
+    if (root.tagName === 'AUDIO' && root.hasAttribute('autoplay')) {
+      root.removeAttribute('autoplay');
+      try { root.pause(); } catch (_) { /* noop */ }
+    }
+    if (root.querySelectorAll) {
+      root.querySelectorAll('audio[autoplay]').forEach((audio) => {
+        audio.removeAttribute('autoplay');
+        try { audio.pause(); } catch (_) { /* noop */ }
       });
     }
-    
-    return element;
-  };
+  }
 
-  // Interceptar innerHTML assignments
-  const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-  const originalSetter = descriptor.set;
+  function init() {
+    stripAutoplay(document);
+  }
 
-  Object.defineProperty(Element.prototype, 'innerHTML', {
-    set: function(html) {
-      if (typeof html === 'string' && html.includes('autoplay')) {
-        // Remover autoplay del HTML string
-        html = html.replace(/\s*autoplay\s*/gi, '');
-        console.warn('⚠️ autoplay removido de innerHTML');
-      }
-      return originalSetter.call(this, html);
-    },
-    get: descriptor.get,
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable
-  });
+  // 1) Limpieza inicial apenas el DOM está listo.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 
-  // Bloquear setAttribute autoplay
-  const originalSetAttribute = Element.prototype.setAttribute;
-  Element.prototype.setAttribute = function(name, value) {
-    if (name.toLowerCase() === 'autoplay') {
-      console.warn('⚠️ Intento de setAttribute autoplay bloqueado');
-      return;
-    }
-    return originalSetAttribute.call(this, name, value);
-  };
-
-  // Al cargar, remover todos los autoplay existentes
-  window.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('audio[autoplay]').forEach(audio => {
-      audio.removeAttribute('autoplay');
-      audio.pause();
-      console.log('✅ autoplay removido de audio element');
-    });
-  });
-
-  // Interceptar también en caso de que se cree después
+  // 2) Cleanup reactivo a nuevos <audio> insertados. Se observa
+  // `document` (no `document.body`) solo con `childList` (sin
+  // `subtree`) para que el costo sea proporcional a las
+  // inserciones top-level, no a cada mutación interna.
   const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.addedNodes.length) {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === 1) { // Element
-            if (node.tagName === 'AUDIO' && node.hasAttribute('autoplay')) {
-              node.removeAttribute('autoplay');
-              console.log('✅ autoplay removido de audio creado dinámicamente');
-            }
-          }
-        });
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        stripAutoplay(node);
       }
-    });
+    }
   });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-
-  console.log('✅ No-autoplay lock activado (bloqueo total)');
+  observer.observe(document.documentElement, { childList: true });
 })();
