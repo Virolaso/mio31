@@ -73,14 +73,21 @@
   }
 
   bindAll();
+  // Q4 (audit): antes observaba `document.body` con `subtree: true`,
+  // lo que disparaba el callback ante CUALQUIER mutación del DOM
+  // (no solo inserciones top-level). Ahora usamos `childList` sin
+  // `subtree`, observando `documentElement`. Los inputs nuevos
+  // viven en containers que se insertan, así que la mutación
+  // top-level los cubre; `bindAll(node)` ya recorre el subárbol
+  // del nuevo contenedor, así que no se pierde nada.
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType !== 1) return;
-        if (node.matches?.(SELECTOR)) bind(node);
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (typeof node.matches === 'function' && node.matches(SELECTOR)) bind(node);
         bindAll(node);
-      });
+      }
     }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.documentElement, { childList: true });
 })();

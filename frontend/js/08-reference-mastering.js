@@ -5,8 +5,11 @@
   const referenceState = LGMDM.state.reference || (LGMDM.state.reference = { file: null, libraryId: null });
   LGMDM.reference = LGMDM.reference || {};
 
-  // Variable local del módulo — aislada del pollInterval de 07-mastering-actions.js.
-  let pollInterval = null;
+  // Q6 (audit): pollInterval era `let` local del módulo pero colisionaba
+  // con el de 07-mastering-actions.js en hot-reload. Lo movimos a un
+  // namespace separado en LGMDM.polling.reference.
+  LGMDM.polling = LGMDM.polling || {};
+  LGMDM.polling.reference = null;
 
 // ============================================================
 LGMDM.reference = LGMDM.reference || {};
@@ -502,8 +505,8 @@ LGMDM.dom.requireById("btnMasterRef", "08-reference-mastering")?.addEventListene
 });
 
 function startReferencePolling(jobId) {
-  if (pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(async () => {
+  if (LGMDM.polling.reference) clearInterval(LGMDM.polling.reference);
+  LGMDM.polling.reference = setInterval(async () => {
     try {
       const res = await LGMDM.api.apiFetch(`${LGMDM.api.apiBase()}/job/${jobId}`);
       const data = await res.json();
@@ -512,7 +515,7 @@ function startReferencePolling(jobId) {
       } else if (data.status === "processing") {
         LGMDM.ui.showStatus(null, "Masterizando por referencia…", "processing", data.progress, data.stage);
       } else if (data.status === "done") {
-        clearInterval(pollInterval);
+        clearInterval(LGMDM.polling.reference);
         LGMDM.ui.showStatus(null, "Masterizado por referencia ✓", "done");
         LGMDM.dom.requireById("btnMasterRef", "08-reference-mastering").disabled = false;
         downloadUrl = `${LGMDM.api.apiBase()}/download/${jobId}`;
@@ -582,7 +585,7 @@ function startReferencePolling(jobId) {
         if (data.mix_advice_after) renderAdvicePanel(data.mix_advice_after, "Evaluación", "— Resultado");
         if (data.analysis_after) window.LGMDM.ai.setContext({ ...data.analysis_after, mix_advice: data.mix_advice_after });
       } else if (data.status === "error") {
-        clearInterval(pollInterval);
+        clearInterval(LGMDM.polling.reference);
         LGMDM.ui.showStatus(null, "Error: " + data.error, "error");
         LGMDM.dom.requireById("btnMasterRef", "08-reference-mastering").disabled = false;
       }

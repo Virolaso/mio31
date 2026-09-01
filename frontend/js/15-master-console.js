@@ -18,9 +18,19 @@
     limiter: ['s-ceiling', 'consoleLimiterFader'],
   };
 
+  // Q14 (audit): mirror() antes acumulaba listeners si se llamaba dos
+  // veces sobre el mismo par (e.g. si el sidepanel se recreaba).
+  // Hoy 25-workspace-tabs.js garantiza que el DOM de los workspaces
+  // es estático, así que mirror() se llama 1 vez. Aún así, dejamos
+  // un guard con WeakSet para que un futuro cambio no genere
+  // duplicados silenciosos.
+  const _mirrored = new WeakSet();
   function mirror(srcId, dstId) {
     const src = LGMDM.dom.byId(srcId), dst = LGMDM.dom.byId(dstId);
     if (!src || !dst) return;
+    if (_mirrored.has(src) || _mirrored.has(dst)) return;
+    _mirrored.add(src);
+    _mirrored.add(dst);
     dst.value = src.value;
     const event = dst.tagName === 'SELECT' || dst.type === 'checkbox' ? 'change' : 'input';
     dst.addEventListener(event, () => {

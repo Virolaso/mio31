@@ -10,7 +10,14 @@
   const LG = global.LGMDM || {};
   const cachedEl = LG.dom?.cachedEl || ((id) => document.getElementById(id));
   const invalidateCachedEl = LG.dom?.invalidateCachedEl || (() => {});
-  const getGenUUID = () => typeof global.genUUID === 'function' ? global.genUUID() : crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+  const getGenUUID = () => {
+    if (typeof global.genUUID === 'function') return global.genUUID();
+    // Q15 (audit): usar `global.crypto` (vía el parámetro IIFE) en vez
+    // de `crypto` directo. En strict mode y en tests/Node, `crypto` no
+    // está en el scope léxico del módulo — `global` sí lo está.
+    if (global.crypto?.randomUUID) return global.crypto.randomUUID();
+    return `${Date.now()}-${Math.random()}`;
+  };
   const formatDbValue = (db) => typeof global.formatDbValue === 'function' ? global.formatDbValue(db) : '—';
   const formatLinearThresholdToDb = (val) => typeof global.formatLinearThresholdToDb === 'function' ? global.formatLinearThresholdToDb(val) : '—';
 

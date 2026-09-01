@@ -1,6 +1,18 @@
 // ============================================================
 // 02-sliders-ui.js — Sliders, tabs multiband, workflow rail
 // ============================================================
+// Q7 (audit): el archivo no estaba envuelto en IIFE — sus `const` y
+// `function` quedaban en el scope global del módulo. Ahora vive
+// dentro de un IIFE y se monta en window.LGMDM.slidersUi. La
+// indentación con 6 espacios se mantiene para no tocar diffs
+// gigantes; los handlers anónimos quedan en closures y no se
+// exponen (no hace falta — solo se llaman desde los listeners que
+// se registran acá).
+(function () {
+  'use strict';
+  const LG = window.LGMDM = window.LGMDM || {};
+  LG.slidersUi = LG.slidersUi || {};
+
       const sliders = [
         ["s-ingain", "v-ingain", (v) => (v >= 0 ? "+" : "") + v.toFixed(1) + " dB"],
         [
@@ -213,4 +225,5 @@
       });
       syncWorkflowState();
 
-      // ── Presets ──────────────────────────────────────────────────────────────────
+      // Q7 (audit): cierre del IIFE.
+})();

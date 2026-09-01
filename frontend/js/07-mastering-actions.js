@@ -2,9 +2,13 @@
 // 07-mastering-actions.js — Master, Auto-Mastering IA, Analyze, Advice, Spectrum, Stems, Polling
 // ============================================================
 
-// pollInterval aislado en propiedad de módulo para evitar re-declaración en hot-reload
-// y colisión con pollInterval de 08-reference-mastering.js (que vive en su propio IIFE).
-if (typeof pollInterval === 'undefined') { var pollInterval = null; }
+// Q6 (audit): pollInterval vivía como `var` global y colisionaba con
+// el de 08-reference-mastering.js en hot-reload. Lo movimos a un
+// namespace por módulo bajo LGMDM.polling. Cada módulo tiene el
+// suyo, sin colisión.
+window.LGMDM = window.LGMDM || {};
+window.LGMDM.polling = window.LGMDM.polling || {};
+window.LGMDM.polling.master = null;
 
 // ── MASTER ────────────────────────────────────────────────────
 async function submitMasterJob() {
@@ -419,8 +423,8 @@ function renderStemsPanel(stemAnalysis, jobId, availableStems) {
 
 // ── Polling ──────────────────────────────────────────────────
 function startPolling(jobId) {
-  if (pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(async () => {
+  if (LGMDM.polling.master) clearInterval(LGMDM.polling.master);
+  LGMDM.polling.master = setInterval(async () => {
     try {
       const res = await LGMDM.api.apiFetch(`${LGMDM.api.apiBase()}/job/${jobId}`);
       const data = await res.json();
@@ -429,7 +433,7 @@ function startPolling(jobId) {
       } else if (data.status === "processing") {
         LGMDM.ui.showStatus(null, "Masterizando…", "processing", data.progress, data.stage);
       } else if (data.status === "done") {
-        clearInterval(pollInterval);
+        clearInterval(LGMDM.polling.master);
         LGMDM.ui.showStatus(null, "Mastering completado ✓", "done");
         document.getElementById("btnMaster")?.removeAttribute("disabled");
         downloadUrl = `${LGMDM.api.apiBase()}/download/${jobId}`;
@@ -472,7 +476,7 @@ function startPolling(jobId) {
         if (data.mix_advice_after) LGMDM.reference.renderAdvicePanel(data.mix_advice_after, "Evaluación", "— Después");
         if (data.analysis_after) window.LGMDM.ai.setContext({ ...data.analysis_after, mix_advice: data.mix_advice_after });
       } else if (data.status === "error") {
-        clearInterval(pollInterval);
+        clearInterval(LGMDM.polling.master);
         LGMDM.ui.showStatus(null, "Error: " + data.error, "error");
         document.getElementById("btnMaster")?.removeAttribute("disabled");
       }

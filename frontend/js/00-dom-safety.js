@@ -1,5 +1,12 @@
 // ============================================================
 // 00-dom-safety.js — Acceso seguro al DOM bajo LGMDM.dom
+//
+// Q3 (audit): este archivo ahora también expone los helpers
+// que vivían en 00-helpers.js (value/checked/text/setValue/
+// parse/stringify/isMobile/isTablet/isDesktop). El archivo
+// 00-helpers.js se va a borrar — el namespace `dom.helpers`
+// nunca se usó en el proyecto, solo el `LGMDM.dom.byId` /
+// `requireById` que ya vivía acá.
 // ============================================================
 (function (global) {
   'use strict';
@@ -41,6 +48,28 @@
       if (typeof fn !== 'function') return undefined;
       return document.startViewTransition ? document.startViewTransition(fn) : fn();
     },
+
+    // Q3 (audit): absorbidos de 00-helpers.js. Helpers chiquitos
+    // para evitar el `document.getElementById(...)?.value ?? default`
+    // repetido por todos lados.
+    value(id, defaultVal = '') { return this.byId(id)?.value ?? defaultVal; },
+    checked(id, defaultVal = false) { return this.byId(id)?.checked ?? defaultVal; },
+    text(id, defaultVal = '') { return this.byId(id)?.textContent ?? defaultVal; },
+    setInputValue(id, value) {
+      const el = this.byId(id);
+      if (!el) return false;
+      el.value = String(value);
+      return true;
+    },
+    parse(json, defaultVal = null) {
+      try { return JSON.parse(json); } catch (_) { return defaultVal; }
+    },
+    stringify(obj, defaultVal = '{}') {
+      try { return JSON.stringify(obj); } catch (_) { return defaultVal; }
+    },
+    isMobile() { return global.innerWidth < 600; },
+    isTablet() { return global.innerWidth >= 600 && global.innerWidth < 960; },
+    isDesktop() { return global.innerWidth >= 960; },
   };
   Object.assign(dom, api);
 })(window);

@@ -11,8 +11,13 @@
   // renderiza sin estilos en cualquier tamaño de pantalla. Se apaga el
   // punto de entrada (tab + pane) hasta que exista el CSS. El resto del
   // archivo queda intacto: en cuanto MIXER_ENABLED vuelva a true, el mixer
-  // funciona igual que antes, sin tocar nada más.
-  const MIXER_ENABLED = false;
+  // Q1 (audit): cuando MIXER_ENABLED=false salimos ANTES de tocar nada
+  // (incluso antes de leer mixerEngine). Antes el módulo se ejecutaba
+  // hasta el throw de "mixer engine no inicializado", dejando la app
+  // inconsistente si 13-mixer-engine.js fallaba en cargar.
+  if (!MIXER_ENABLED) {
+    return;
+  }
 
   const LG = window.LGMDM = window.LGMDM || {};
   const bindOnce = LG.ui.bindOnce;
@@ -111,10 +116,19 @@
       }
 
       function onDown(e) {
+        if (dragging) return;
         dragging = true;
         startY  = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
         startDb = getDb();
         document.body.style.userSelect = 'none';
+        // Q8 (audit): registrar los listeners de movimiento solo durante
+        // el drag. Antes quedaban vivos para siempre (registrados en
+        // `document` una vez y nunca quitados), manteniendo referencias
+        // circulares a `el` y bloqueando GC del canal.
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('mouseup',   onUp);
+        document.addEventListener('touchend',  onUp);
         e.preventDefault();
       }
       function onMove(e) {
@@ -126,14 +140,17 @@
       function onUp() {
         dragging = false;
         document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+        document.removeEventListener('touchend',  onUp);
       }
 
       el.addEventListener('mousedown',  onDown);
       el.addEventListener('touchstart', onDown, { passive: false });
-      document.addEventListener('mousemove',  onMove);
-      document.addEventListener('touchmove',  onMove, { passive: false });
-      document.addEventListener('mouseup',    onUp);
-      document.addEventListener('touchend',   onUp);
+      // Q8 (audit): los listeners de document para move/up/end se
+      // registran recién en onDown y se quitan en onUp, evitando
+      // mantener handlers vivos luego de soltar el fader.
 
       el.addEventListener('dblclick', () => applyDb(0));
 

@@ -10,7 +10,14 @@
       const fileInput = document.getElementById("fileInput");
       let uppy = null;
       if (window.Uppy && window.Uppy.Uppy && window.Uppy.FileInput) {
-        fileInput.style.pointerEvents = "none";
+        // Q13 (audit): antes se seteaba fileInput.style.pointerEvents = 'none'
+        // para que Uppy capturara el click. Eso dejaba el input INACCESIBLE
+        // para usuarios de teclado (no se podía tabular hasta él ni
+        // activarlo con Enter). Ahora se hace al revés: Uppy no necesita
+        // bloquear el input porque ya tenemos el listener 'change' que
+        // delega en setFile. Solo lo ocultamos visualmente con
+        // `aria-hidden`/`tabindex=-1` si realmente hace falta, pero
+        // idealmente queda 100% operativo para teclado y lector de pantalla.
         uppy = new window.Uppy.Uppy({
           autoProceed: false,
           allowMultipleUploads: false,
@@ -41,6 +48,12 @@
       }, "file-input-change");
 
       function setFile(f, libraryId = null) {
+        // Q16 (audit): validar que f sea un File/Blob antes de leer f.size.
+        if (!(f instanceof Blob)) {
+          const warn = document.getElementById("fileSizeWarn");
+          if (warn) warn.textContent = '⚠ Archivo inválido';
+          return;
+        }
         const warn = document.getElementById("fileSizeWarn");
         if (f.size > MAX_FILE_BYTES) {
           if (warn) warn.textContent = `⚠ Archivo de ${(f.size / 1024 / 1024).toFixed(1)} MB — máximo ${MAX_FILE_MB} MB`;
@@ -240,6 +253,14 @@
       }, "ref-file-change");
 
       function setRefFile(f, fromLibraryId = null) {
+        // Q16 (audit): validar que f sea un File/Blob. Sin esto, si llega
+        // un string o un objeto mal formado, f.size tira TypeError y la
+        // función entera falla sin feedback al usuario.
+        if (!(f instanceof Blob)) {
+          if (document.getElementById("refFileName")) document.getElementById("refFileName").textContent =
+            '⚠ Referencia inválida (no es un archivo)';
+          return;
+        }
         if (f.size > MAX_FILE_BYTES) {
           if (document.getElementById("refFileName")) document.getElementById("refFileName").textContent =
             `⚠ Archivo de ${(f.size / 1024 / 1024).toFixed(1)} MB — máximo ${MAX_FILE_MB} MB`;

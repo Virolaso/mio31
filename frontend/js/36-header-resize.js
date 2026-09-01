@@ -1,73 +1,66 @@
 /* LGMDM — Header Resize
  * Deja que el usuario arrastre el borde inferior del header para
- * cambiar su alto a gusto. Mismo patrón que setupHandle() de
- * 35-console-shell.js (--cns-left-w/--cns-right-w), pero acá se
- * ajusta --lg-shell-header-h en :root, que es la misma variable
- * que ya usan .lg-app (fila del grid) y .lg-header (min/max-height)
- * — así ambas quedan siempre sincronizadas.
+ * cambiar su alto a gusto. Ajusta --lg-shell-header-h en :root,
+ * que es la misma variable que ya usan .lg-app y .lg-header
+ * (min/max-height) — así ambas quedan siempre sincronizadas.
+ *
+ * Q11 + Q12 (audit): reescrito para usar el helper compartido
+ * LGMDM.ui.makeResizable (00-resize-utility.js) en vez de
+ * reimplementar el drag a mano. Beneficios:
+ *   - Cleanup correcto de listeners (removeEventListener en onUp)
+ *   - No más getComputedStyle en cada onUp — makeResizable
+ *     llama options.setSize(next) con el número en px listo.
+ *   - Mismo patrón que 35-console-shell.js, código más chico.
  */
 (function () {
   'use strict';
-
-  function byId(id) { return document.getElementById(id); }
-  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
   const MIN_H = 40;
   const MAX_H = 140;
 
   function install() {
-    const handle = byId('headerResizeHandle');
+    const handle = document.getElementById('headerResizeHandle');
     const header = document.querySelector('.lg-header');
     if (!handle || !header) return;
 
     const root = document.documentElement;
-    let dragging = false;
-    let startY = 0;
-    let startH = 0;
 
-    function currentHeight() {
+    function getSize() {
       const val = getComputedStyle(root).getPropertyValue('--lg-shell-header-h').trim();
       const px = parseFloat(val);
       if (!isNaN(px)) return px;
       return header.getBoundingClientRect().height;
     }
 
-    function onMove(e) {
-      if (!dragging) return;
-      const y = e.touches ? e.touches[0].clientY : e.clientY;
-      const dy = y - startY;
-      const next = clamp(startH + dy, MIN_H, MAX_H);
+    function setSize(next) {
       root.style.setProperty('--lg-shell-header-h', next + 'px');
     }
-    function onUp() {
-      dragging = false;
-      handle.classList.remove('dragging');
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.removeEventListener('touchmove', onMove);
-      document.removeEventListener('touchend', onUp);
-      try { LGMDM.storage.set('lgmdm.headerHeight', getComputedStyle(root).getPropertyValue('--lg-shell-header-h').trim()); } catch (_) {}
-    }
-    function onDown(e) {
-      dragging = true;
-      handle.classList.add('dragging');
-      startY = e.touches ? e.touches[0].clientY : e.clientY;
-      startH = currentHeight();
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      document.addEventListener('touchmove', onMove, { passive: false });
-      document.addEventListener('touchend', onUp);
-      e.preventDefault();
+
+    function onEnd() {
+      // Persistir al final del drag (no en cada onMove).
+      const final = getComputedStyle(root).getPropertyValue('--lg-shell-header-h').trim();
+      try { window.LGMDM?.storage?.set?.('lgmdm.headerHeight', final); } catch (_) { /* noop */ }
     }
 
-    handle.addEventListener('mousedown', onDown);
-    handle.addEventListener('touchstart', onDown, { passive: false });
+    if (typeof window.LGMDM?.ui?.makeResizable !== 'function') {
+      console.warn('36-header-resize: LGMDM.ui.makeResizable no disponible, header no se podrá redimensionar');
+      return;
+    }
+
+    window.LGMDM.ui.makeResizable(handle, {
+      axis: 'y',
+      getSize,
+      setSize,
+      min: MIN_H,
+      max: MAX_H,
+      onEnd,
+    });
 
     // Restaurar el último alto elegido por el usuario, si hay uno guardado.
     try {
-      const saved = LGMDM.storage.get('lgmdm.headerHeight');
+      const saved = window.LGMDM?.storage?.get?.('lgmdm.headerHeight');
       if (saved) root.style.setProperty('--lg-shell-header-h', saved);
-    } catch (_) {}
+    } catch (_) { /* noop */ }
   }
 
   if (document.readyState === 'loading') {

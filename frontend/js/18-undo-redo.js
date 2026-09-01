@@ -1,9 +1,90 @@
 // ============================================================
 // 18-undo-redo.js — Historial de cambios (undo/redo)
 // ============================================================
-
+// Q10 (audit): el clon vía JSON.parse(JSON.stringify(state)) fallaba
+// en silencio con File, Blob, AudioBuffer, Map, Set, etc. — al
+// serializar se perdían o tiraban excepciones. Ahora usamos un
+// clonador seguro que:
+//   1) Para objetos planos → structuredClone si está disponible
+//      (Node 17+, todos los browsers modernos), con fallback a
+//      JSON para los casos donde structuredClone no pueda.
+//   2) Para tipos no serializables (File, Blob, AudioBuffer, Map,
+//      Set, etc.) → mantener la referencia (no clonar profundo)
+//      para que al menos no se rompa. El estado "vivo" entre
+//      cambios de undo/redo es responsabilidad del caller: si
+//      el undo cambia un File, el `applyMasteringState` debe
+//      re-derivar el File desde otra fuente.
 (function () {
   "use strict";
+
+  // Tipos que NO se clonan profundo — se mantienen como referencia
+  // viva. Si el caller quiere persistir algo no-clonable entre
+  // estados, debe re-derivar la referencia desde el id/URL/etc.
+  const NON_CLONABLE_TYPES = new Set([
+    'File', 'Blob', 'ArrayBuffer', 'AudioBuffer', 'ImageBitmap',
+    'HTMLImageElement', 'HTMLVideoElement', 'HTMLAudioElement',
+    'HTMLCanvasElement', 'OffscreenCanvas', 'WebGLTexture',
+    'MediaStream', 'MessagePort',
+  ]);
+
+  function isPlainObject(value) {
+    if (value === null || typeof value !== 'object') return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+  }
+
+  function safeClone(value, seen = new WeakMap()) {
+    // Primitivos: retorno tal cual.
+    if (value === null || typeof value !== 'object') return value;
+
+    // Funciones y symbols: no se clonan.
+    if (typeof value === 'function' || typeof value === 'symbol') return value;
+
+    // Tipos no clonables: mantener referencia.
+    if (NON_CLONABLE_TYPES.has(value.constructor?.name)) return value;
+
+    // Cycles: devolver la referencia cacheada.
+    if (seen.has(value)) return seen.get(value);
+
+    // Arrays.
+    if (Array.isArray(value)) {
+      const out = [];
+      seen.set(value, out);
+      for (const item of value) out.push(safeClone(item, seen));
+      return out;
+    }
+
+    // Date, RegExp, etc.: clonar con su constructor.
+    if (value instanceof Date) return new Date(value.getTime());
+    if (value instanceof RegExp) return new RegExp(value.source, value.flags);
+
+    // Map: clonar keys/values.
+    if (value instanceof Map) {
+      const out = new Map();
+      seen.set(value, out);
+      for (const [k, v] of value) out.set(safeClone(k, seen), safeClone(v, seen));
+      return out;
+    }
+
+    // Set: clonar valores.
+    if (value instanceof Set) {
+      const out = new Set();
+      seen.set(value, out);
+      for (const v of value) out.add(safeClone(v, seen));
+      return out;
+    }
+
+    // Plain object: clonar keys/values.
+    if (isPlainObject(value)) {
+      const out = {};
+      seen.set(value, out);
+      for (const k of Object.keys(value)) out[k] = safeClone(value[k], seen);
+      return out;
+    }
+
+    // Cualquier otro objeto (clase custom, etc.): mantener referencia.
+    return value;
+  }
 
   class UndoRedoManager {
     constructor(maxStates = 50) {
@@ -16,10 +97,10 @@
 
     // Guardar estado actual
     saveState(state, label = 'Change') {
-      const next = JSON.parse(JSON.stringify(state));
+      const next = safeClone(state);
       if (this.currentState !== null) {
         this.undoStack.push({
-          state: JSON.parse(JSON.stringify(this.currentState)),
+          state: safeClone(this.currentState),
           label,
           timestamp: Date.now(),
         });
@@ -33,12 +114,12 @@
     undo() {
       if (this.undoStack.length === 0) return null;
       this.redoStack.push({
-        state: JSON.parse(JSON.stringify(this.currentState)),
+        state: safeClone(this.currentState),
         label: 'Redo',
         timestamp: Date.now(),
       });
       const previousState = this.undoStack.pop();
-      this.currentState = JSON.parse(JSON.stringify(previousState.state));
+      this.currentState = safeClone(previousState.state);
       this.notifyListeners();
       return previousState;
     }
@@ -46,12 +127,12 @@
     redo() {
       if (this.redoStack.length === 0) return null;
       this.undoStack.push({
-        state: JSON.parse(JSON.stringify(this.currentState)),
+        state: safeClone(this.currentState),
         label: 'Undo',
         timestamp: Date.now(),
       });
       const nextState = this.redoStack.pop();
-      this.currentState = JSON.parse(JSON.stringify(nextState.state));
+      this.currentState = safeClone(nextState.state);
       this.notifyListeners();
       return nextState;
     }
