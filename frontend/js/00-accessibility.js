@@ -8,6 +8,16 @@
   const LGMDM = global.LGMDM = global.LGMDM || {};
   LGMDM.a11y = LGMDM.a11y || {};
 
+  // A10 (audit): counter incremental para IDs de aria-labelledby.
+  // Antes usaba Math.random() que generaba IDs distintos cada vez que
+  // se llamaba enhanceAccessibility() (e.g. hot-reload, re-mount del
+  // workspace). El aria-labelledby quedaba apuntando al ID viejo y
+  // los screen readers no encontraban el section label.
+  let _a11yIdCounter = 0;
+  function nextA11yId() {
+    return `a11y-section-${++_a11yIdCounter}`;
+  }
+
   // ── Agregar aria-labels a botones y controles sin label ──
   function enhanceAccessibility() {
     // Botones en el sidebar
@@ -77,9 +87,11 @@
       const parent = section.parentElement;
       if (parent && !parent.hasAttribute('role')) {
         parent.setAttribute('role', 'region');
-        if (section.id) parent.setAttribute('aria-labelledby', section.id);
-        else {
-          const generatedId = `a11y-section-${Math.random().toString(36).slice(2, 9)}`;
+        if (section.id) {
+          // A10: si el section ya tiene ID (de una llamada previa), reusar.
+          parent.setAttribute('aria-labelledby', section.id);
+        } else {
+          const generatedId = nextA11yId();
           section.id = generatedId;
           parent.setAttribute('aria-labelledby', generatedId);
         }
