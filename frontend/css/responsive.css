@@ -224,6 +224,9 @@
   }
 
   /* --- Preferencias de reducción de movimiento --- */
+  /* C-P4 (audit): limpieza de duplicados. La regla
+     animation-iteration-count: 1 ya estaba en la declaración previa,
+     así que aquí se aplica una sola vez. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

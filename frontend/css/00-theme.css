@@ -9,6 +9,14 @@
   a { color: var(--p); }
   img, canvas, svg { display: block; max-width: 100%; }
   button, summary { -webkit-tap-highlight-color: transparent; }
+  /* C-A1 (audit): agregar :focus-visible consistente para botones y
+     elementos custom que redefinen outline. Sin esto, los usuarios de
+     teclado no ven dónde está el foco en botones custom (header, pro-console,
+     panel-right, etc.). */
+  *:focus-visible {
+    outline: 2px solid var(--p) !important;
+    outline-offset: 2px !important;
+  }
   .skip-link {
     position: absolute;
     top: -1000px;

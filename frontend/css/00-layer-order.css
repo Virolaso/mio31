@@ -34,7 +34,27 @@
    de 'responsive' por el mismo motivo (headers y paneles con reglas
    propias que los @media necesitan poder pisar).
    ============================================================ */
+/* CL-1: 'tokens' se eliminó porque @layer tokens estaba vacío y sus
+   utilities se movieron a @layer utilities (99-utilities.css). */
 @layer variables, reset, main-grid, header, components, panel-left-shell, sidebar, studio-left, workspace-shell, workspace, console, console-master, studio-center, console-center-group-b, console-shell, pro-console, studio-right, studio-theme, auth-ai, stage-visibility, responsive, accessibility, utilities;
+
+/* ───────────────────────────────────────────────────────────────────────
+   CONVENCIÓN DE PREFIJOS DE VARIABLES LOCALES (CL-3)
+   ───────────────────────────────────────────────────────────────────────
+   Los componentes que definen sus propias variables CSS usan un prefijo
+   para evitar colisiones en el :root global:
+
+   • --cns-*     : console-shell.css (--cns-left-w, --cns-right-w, --cns-handle-w)
+   • --v4-*      : sistema moderno de tokens (colores, tipografía, layout)
+                   definido en 00-variables-theme.css y usado en 02-panel-left,
+                   03-console-center, 04-panel-right, 06-pro-console
+   • --lg-*      : variables legales del sistema antiguo (--lg-shell-header-h,
+                   --lg-sidebar-w, --lg-gutter). Se mantienen para compat
+                   pero la migración debería ir hacia --v4-*.
+
+   Regla: si agregás una variable nueva, usá el prefijo del componente.
+   Ejemplo: si tocás 02-panel-left.css, usá --pl-* o mantené --v4-*.
+   ───────────────────────────────────────────────────────────────────────
 
 /* ============================================================
    CONVENCIONES DE NOMBRES DE VARIABLES CSS
