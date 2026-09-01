@@ -26,10 +26,10 @@
         </div>
 
         <div class="lgjs-s-363cdaa2">
-          <label class="lgjs-s-a4c301cf">Mode</label>
-          <div class="lgjs-s-de2ef6e2">
+          <label class="lgjs-s-a4c301cf" id="pcModeLabel">Mode</label>
+          <div class="lgjs-s-de2ef6e2" role="radiogroup" aria-labelledby="pcModeLabel">
             ${PC_MODES.map(m => `
-              <button data-mode="${m}" style="padding:.5rem;background:var(--surface2);border:2px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-weight:${m==='MEDIUM'?'bold':'normal'};transition:all 200ms" 
+              <button type="button" data-mode="${m}" role="radio" aria-checked="${m === 'MEDIUM' ? 'true' : 'false'}" aria-label="Pitch correction mode: ${m}" style="padding:.5rem;background:var(--surface2);border:2px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-weight:${m==='MEDIUM'?'bold':'normal'};transition:all 200ms"
                 ${m==='MEDIUM'?' class="lgjs-s-65dc0d12"':''}>
                 ${m}
               </button>

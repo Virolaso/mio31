@@ -177,8 +177,21 @@
         const s = document.getElementById(sid),
           v = document.getElementById(vid);
         if (!s || !v) return;
+        // A4 (audit): aria-valuetext en cada slider. Sin esto, los
+        // usuarios de screen reader (NVDA, JAWS, VoiceOver) oyen el
+        // valor numérico crudo sin unidad ("-18.0" en vez de "-18.0 dB").
+        // WCAG 1.1.1 / 4.1.2.
+        const updateAria = () => {
+          s.setAttribute('aria-valuetext', fmt(parseFloat(s.value)));
+        };
+        s.setAttribute('aria-valuemin', s.min || '0');
+        s.setAttribute('aria-valuemax', s.max || '100');
+        s.setAttribute('aria-valuenow', s.value);
+        updateAria();
         s.addEventListener("input", () => {
           v.textContent = fmt(parseFloat(s.value));
+          s.setAttribute('aria-valuenow', s.value);
+          updateAria();
         });
       });
 
