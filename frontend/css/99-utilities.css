@@ -11,4 +11,8 @@
 .mb-sm{margin-bottom:6px}
 .mb-xs{margin-bottom:4px}
 .limiter{border-color:rgba(238,109,109,.28)!important;background:linear-gradient(180deg,rgba(238,109,109,.05),transparent)!important}
+/* CL-1 (audit): .hidden/.lgjs-hidden/.hidden-panel estaban en
+   00-theme.css dentro de @layer tokens (mal ubicados — son utility,
+   no tokens). Movidos acá para que vivan con sus pares. */
+.hidden,.lgjs-hidden,.hidden-panel{display:none!important}
 }

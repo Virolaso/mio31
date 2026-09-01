@@ -34,4 +34,37 @@
    de 'responsive' por el mismo motivo (headers y paneles con reglas
    propias que los @media necesitan poder pisar).
    ============================================================ */
-@layer variables, reset, tokens, main-grid, header, components, panel-left-shell, sidebar, studio-left, workspace-shell, workspace, console, console-master, studio-center, console-center-group-b, console-shell, pro-console, studio-right, studio-theme, auth-ai, stage-visibility, responsive, accessibility, utilities;
+@layer variables, reset, main-grid, header, components, panel-left-shell, sidebar, studio-left, workspace-shell, workspace, console, console-master, studio-center, console-center-group-b, console-shell, pro-console, studio-right, studio-theme, auth-ai, stage-visibility, responsive, accessibility, utilities;
+
+/* ============================================================
+   CONVENCIONES DE NOMBRES DE VARIABLES CSS
+   ------------------------------------------------------------
+   CL-3 (audit): documentar acá las convenciones que ya estaban
+   implícitas en el código, para que un dev nuevo sepa qué prefijo
+   usar cuando agregue un componente nuevo.
+
+   Regla general: las custom properties GLOBALES viven en
+   00-variables-theme.css dentro de @layer variables, sin prefijo
+   o con prefijos legacy (--bg, --s, --p, --line...) o
+   modernos (--v4-bg, --v4-panel, --v4-border...).
+
+   Las custom properties LOCALES de un componente se definen
+   en el selector raíz del componente (.cns-shell, .lg-app, etc.)
+   con un prefijo de 3+ letras derivado del nombre del componente.
+
+   Prefijos en uso hoy (auditados 2026-09-01):
+
+     --cns-*   console-shell.css   (paneles laterales de la consola
+                                   con resize: --cns-left-w /
+                                   --cns-right-w / --cns-handle-w)
+     --lg-*    01-main-grid.css    (layout shell: --lg-shell-header-h,
+                                   --lg-sidebar-w). Pisable en media
+                                   queries de responsive.css.
+     --v4-*    00-variables-theme  (alias del sistema legacy. Pendiente
+                                   de deprecar — ver CD-1 del audit.)
+     --ai-*    08-auth-ai-ui.css   (panel de Laia: --ai-panel-w,
+                                   --ai-panel-h)
+
+   Para un componente nuevo, usar --<prefijo>-* con 3+ letras del
+   nombre del archivo. Documentar el prefijo acá cuando se agregue.
+   ============================================================ */

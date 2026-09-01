@@ -35,6 +35,14 @@ html[data-studio-theme="true"][data-studio-variant="analog"]{
 /* Basic helpers so the theme looks integrated with existing markup */
 html[data-studio-theme="true"] .daw-root,
 html[data-studio-theme="true"] .lg-app {
+  /* CL-2 (audit): los `!important` eran innecesarios en custom
+     properties — la cascada ya las resuelve por orden. Solo los
+     mantenemos en `background` y `color` (no son custom properties,
+     son propiedades CSS que se aplican al elemento) por la
+     defensa contra 01-reset-base.css (que está muerto, sin @layer
+     y con un background con radial-gradient sobre .lg-app). Si
+     alguien lo re-enlaza, este !important protege. Cuando borremos
+     01-reset-base.css (CL-F1) podemos volver a sacarlo. */
   background: var(--bg) !important;
   color: var(--text) !important;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;

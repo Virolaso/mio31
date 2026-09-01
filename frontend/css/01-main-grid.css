@@ -4,30 +4,20 @@
    CSS sin @layer: una regla sin @layer le gana siempre a una con @layer,
    sin importar el orden de <link>, y eso fue justamente lo que rompió
    el layout antes (01-reset-base.css pisaba esto con var(--sidebar),
-   que no existe fuera de los media queries). */
+   que no existe fuera de los media queries).
+
+   CL-5 (audit): el bloque .lg-header que estaba acá estaba duplicado
+   con 02-header.css @layer header. La cascada resolvía por orden de
+   @layer (header gana porque va después), pero tener 2 definiciones
+   con `gap` (20px vs 16px) y `overflow` (hidden vs visible) distintos
+   es ruido y riesgo de inconsistencia. Borrado: la única fuente de
+   verdad para .lg-header es 02-header.css. */
 @layer main-grid {
   .lg-app {
     display: grid;
     grid-template-rows: var(--lg-shell-header-h) minmax(0, 1fr) auto;
     height: 100dvh;
     overflow: hidden;
-  }
-
-  .lg-header {
-    display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
-    align-items: center;
-    gap: 20px;
-    padding: 6px var(--gutter);
-    border-bottom: 1px solid var(--line);
-    backdrop-filter: blur(6px);
-    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg) 96%, transparent));
-    overflow: hidden;
-    min-height: var(--lg-shell-header-h);
-    max-height: var(--lg-shell-header-h);
-    position: sticky;
-    top: 0;
-    z-index: 80;
   }
 
   .lg-app-body {
@@ -96,50 +86,11 @@
     /* → 02-header.css */
 
 
-  /* Responsive: apilado en móviles */
-  @media (max-width: 900px) {
-    .lg-app {
-      height: auto;
-      min-height: 100dvh;
-      overflow: visible;
-    }
-
-    .lg-header {
-      grid-template-columns: minmax(0, 1fr) auto;
-      padding: 0 7px;
-    }
-
-    .lg-header-center {
-      display: none;
-    }
-
-    .lg-app-body {
-      grid-template-columns: minmax(0, 1fr);
-      min-height: calc(100dvh - var(--lg-shell-header-h));
-      overflow: visible;
-    }
-
-    .lg-sidebar {
-      max-height: none;
-      border-right: 0;
-      border-bottom: 1px solid var(--v4-accent);
-      width: 100% !important;
-      padding: 8px !important;
-    }
-
-    .lg-app-body.sidebar-collapsed .lg-sidebar {
-      width: 100% !important;
-      padding: 8px !important;
-      border-bottom: 1px solid var(--v4-accent);
-      overflow: auto;
-    }
-
-    .lg-main-stack {
-      padding: 8px;
-    }
-
-    .sidebarResizeHandle {
-      display: none;
-    }
-  }
+  /* CL-4 (audit): el bloque @media (max-width: 900px) que estaba
+     acá estaba duplicado LITERALMENTE en responsive.css (líneas
+     50-83). responsive.css está en @layer responsive, que va
+     DESPUÉS de @layer main-grid en el orden global, así que
+     gana la cascada. Mantener ambas es ruido y riesgo de
+     inconsistencia. Borramos la copia de main-grid; la única
+     fuente de verdad queda en responsive.css. */
 }

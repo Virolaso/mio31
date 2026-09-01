@@ -25,16 +25,9 @@
     top: 0;
   }
 }
-@layer tokens {
-  /* NOTA: las variables --v4-* / --lg-* (colores, radios, tipografía, layout)
-     viven en 00-variables-theme.css, ahora dentro de @layer variables (ver
-     00-layer-order.css para el orden global). Antes ese archivo estaba SIN
-     @layer a propósito para que sus valores le ganaran siempre a cualquier
-     versión en capa — pero eso también le ganaba a los @media de
-     responsive.css que pisan --v4-gap/--lg-sidebar-w/--lg-shell-header-h en
-     pantallas chicas, así que esos ajustes responsive nunca se aplicaban.
-     Se corrigió poniéndolo en @layer variables, ubicado ANTES de responsive
-     en el orden global — así los breakpoints sí ganan cuando corresponde.
-     .sr-only vive únicamente en 99-utilities.css (estaba duplicado acá). */
-  .hidden, .lgjs-hidden, .hidden-panel { display: none !important; }
-}
+// CL-1 (audit): el bloque @layer tokens que estaba acá solo contenía
+// `.hidden/.lgjs-hidden/.hidden-panel { display: none !important; }` —
+// una utility, no un token. Se movió a 99-utilities.css y la capa
+// `tokens` se quitó de 00-layer-order.css.
+// Las variables --v4-* / --lg-* siguen viviendo en 00-variables-theme.css
+// dentro de @layer variables. Ver 00-layer-order.css para el orden global.
